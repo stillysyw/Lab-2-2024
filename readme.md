@@ -23,10 +23,11 @@
 
 Построенный пайплайн будет выполнять следующие действия поочередно:
 
-1. Извлекать аудиодорожку из исходного видеофайла.
-2. Преобразовывать аудиодорожку в текст с помощью нейросетевой модели.
-3. Формировать конспект на основе полученного текста.
-4. Формировать выходной .pdf файл с конспектом.
+1. Производить мониторинг целевой папки на предмет появления новых видеофайлов.
+2. Извлекать аудиодорожку из исходного видеофайла.
+3. Преобразовывать аудиодорожку в текст с помощью нейросетевой модели.
+4. Формировать конспект на основе полученного текста.
+5. Формировать выходной .pdf файл с конспектом.
 
 ### Пайплайн для обучения модели
 
@@ -36,9 +37,10 @@
 
 Итак, пайплайн будет выполнять следующие действия:
 
-1. Читать пакет файлов из определенного источника (файловой системы, сетевого интерфейса и т.д.).
+1. Читать набор файлов из определенного источника (файловой системы, сетевого интерфейса и т.д.).
 2. Формировать пакет данных для обучения модели.
 3. Обучать модель.
+4. Сохранять данные результатов обученя (логи, значения функции ошибки) в текстовый файл
 
 Для успешного выполнения задания необходимо продемонстрировать успешность обучения модели и приложить файл .ipynb, в котором продемонстрирован процесс инференса данной модели.
 
@@ -61,6 +63,7 @@
 from datetime import datetime
 from airflow import DAG
 from airflow.providers.docker.operators.docker import DockerOperator
+from airflow.sensors.filesystem import FileSensor
 
 default_args = {
     'owner': 'airflow',
@@ -71,8 +74,15 @@ default_args = {
 dag = DAG(
     'audio_to_text_to_summary_to_pdf',
     default_args=default_args,
-    description='DAG for data engineering lab 2: DAG for extracting audio, transforming to text, summarizing, and saving as PDF',
+    description='DAG for extracting audio, transforming to text, summarizing, and saving as PDF',
     schedule_interval=None,
+)
+
+wait_for_new_file = FileSensor(
+    task_id='wait_for_new_file',
+    poke_interval=10,  # Interval to check for new files (in seconds)
+    filepath='/path/to/input_video',  # Target folder to monitor
+    dag=dag,
 )
 
 extract_audio = DockerOperator(
@@ -107,8 +117,7 @@ save_to_pdf = DockerOperator(
     dag=dag,
 )
 
-extract_audio >> transform_audio_to_text >> summarize_text >> save_to_pdf
-
+wait_for_new_file >> extract_audio >> transform_audio_to_text >> summarize_text >> save_to_pdf
 ```
 
 ### Пайплайн для обучения НС
