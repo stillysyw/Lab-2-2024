@@ -220,17 +220,18 @@ read_data >> train_model
 **docker-proxy**, который и позволит нам пользоваться `DockerOperator` в наиболее безопасной манере. 
 ```yaml
   docker-proxy:
-    image: docker:dind
+    image: docker:24-dind
     privileged: true
     environment:
       DOCKER_TLS_CERTDIR: ""
     volumes:
-      - airflow-data-volume:/data
+      - ./airflow/data:/data
 ```
 Обратите внимание на то,
-какой `volume` проброшен для данного контейнера: `airflow-data-volume:/data`. Это означает что **docker-proxy**, который ответственнен
+какая директория проброшена для данного контейнера: `./airflow/data:/data`. 
+Это означает что **docker-proxy**, который ответственнен
 за процесс менеджмента контейнеров `DockerOperator`, имеет доступ к данным 
-находящимся внутри `airflow-data-volume`, что в свою очередь для нас означает возможность использования файлов из
+находящимся внутри `./airflow/data`, что в свою очередь для нас означает возможность использования файлов из
 директории `/Prerequisits/airflow/data` внутри **docker-proxy** по пути `/data`. Если обратиться к шаблону возможной реализации
 пайплайна - вы можете наблюдать, что для контейнеров `DockerOperator` происходит отображение директории `/data:/data`,
 соответственно конейнеры для получения доступа к данным должны использовать именно директорию `/data`.
